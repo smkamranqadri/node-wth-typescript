@@ -2,7 +2,7 @@
 
 import http = require('http')
 
-http.createServer(function (req, res) {
+http.createServer(function (req : http.ServerRequest, res : http.ServerResponse) {
   
   res.writeHead(200, {'Content-Type': 'text/html'}); //change plain to html for rendering sent string to html 
   res.write('<html>');
