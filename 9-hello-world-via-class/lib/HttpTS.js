@@ -1,58 +1,101 @@
-///<reference path="../typings/node/node.d.ts" />
-var http = require('http');
+///<reference path="../typings/node/node.d.ts" />                   //refence node declaration file for intellisense and type safety
+var http = require('http'); //import core module of node in javascript style 
 var fs = require('fs');
 var HttpTS = (function () {
     function HttpTS(port) {
         this._port = port || 3000;
         this._routes = [];
     }
+    HttpTS.prototype.errorFile = function (path) {
+        this._errorFile = path;
+    };
     HttpTS.prototype.start = function () {
-        this._server = http.createServer().listen(3000);
+        this._server = http.createServer().listen(3000); //server started
         console.log('Server running at http://localhost:3000/');
+        var _self = this; //block level scope variable for server
         this._server.on('request', function (req, res) {
             //handle routes
-            console.log(req.url);
-            for (var i = 0; i < this._routes.length; i++) {
-                var route = this._routes[i];
-                console.log(route);
+            if (req.url.search('/public') == 0) {
+                console.log('found static');
+            }
+            for (var i = 0; i < _self._routes.length; i++) {
+                var route = _self._routes[i];
                 if (route.url == req.url) {
-                    console.log('FOUND URL');
                     if (route.type == 'text') {
-                        console.log('FOUND TEXT');
-                        this._send(route.response, res);
+                        _self._send(route.response, res); //send requested text
                     }
-                    else if (route.type == 'html') {
-                        console.log('FOUND FILE');
-                        this._sendFile(route.response, res);
+                    else {
+                        _self._sendFile(route.response, route.type, res); //send required file
                     }
                     break;
                 }
             }
-            this._errorHandler(res);
+            _self._errorHandler(res); //handle error if no route is available and server will not crash
         });
     };
+    //to get routes
     HttpTS.prototype.route = function (url, type, response) {
         this._routes.push({ url: url, type: type, response: response });
     };
+    //to handle errors
     HttpTS.prototype._errorHandler = function (res, err) {
         if (err) {
-            console.log(err.toString);
+            console.log(err.toString());
         }
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        this._sendFile('../html/error.html', res);
-        return;
+        var _self = this;
+        this._readFile(this._errorFile, function (err, data) {
+            res.writeHead(404, _self._mime('html'));
+            res.end(data.toString());
+        });
     };
-    HttpTS.prototype._Send = function (Text, res) {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
+    HttpTS.prototype._mime = function (type) {
+        switch (type) {
+            case 'text':
+                return { 'Content-Type': 'text/plain' };
+                break;
+            case 'html':
+                return { 'Content-Type': 'text/html' };
+                break;
+            case 'css':
+                return { 'Content-Type': 'text/css' };
+                break;
+            case 'js':
+                return { 'Content-Type': 'text/js' };
+                break;
+            case 'png':
+                return { 'Content-Type': 'image/png' };
+                break;
+            case 'jpg':
+                return { 'Content-Type': 'image/jpg' };
+                break;
+            case 'gif':
+                return { 'Content-Type': 'image/gif' };
+                break;
+            default:
+                break;
+                return { 'Content-Type': 'text/plain' };
+        }
+    };
+    //to send text
+    HttpTS.prototype._send = function (Text, res) {
+        res.writeHead(200, this._mime('text'));
         res.end(Text);
     };
-    HttpTS.prototype._sendFile = function (path, res) {
+    //to read file
+    HttpTS.prototype._readFile = function (path, cb) {
         fs.readFile(path, function (err, data) {
+            cb(err, data);
+        });
+    };
+    //to send file
+    HttpTS.prototype._sendFile = function (path, type, res) {
+        var _self = this;
+        this._readFile(path, function (err, data) {
             if (err) {
-                this._errorHandler(res, err);
+                _self._errorHandler(res, err);
             }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data.toString);
+            res.writeHead(200, _self._mime(type));
+            res.end(data.toString());
         });
     };
     return HttpTS;
