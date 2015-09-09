@@ -1,0 +1,12 @@
+.centerElement {
+	margin: auto;
+}
+
+.main {
+	width: 362px;
+}
+
+td > a {
+	text-decoration: none;
+	color: seagreen;
+}
